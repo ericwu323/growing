@@ -1,0 +1,94 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class enemy : MonoBehaviour
+{
+    public event System.Action<float, float> OnHealthChanged;
+    public float max;
+    public float health;
+    public Transform[] points;
+    private Transform player;
+    public Animator anim;
+    private float dist;
+    public float moveSpeed = 1;
+    public float howclose = 2;
+    public float leashRange = 4;
+    int current;
+    bool stop, deady;
+    public CharacterController controller;
+    public Transform spawnpoint;
+    private Vector3 playerGround;
+    // Start is called before the first frame update
+    void Start()
+    {
+        deady = false;
+        player = GameObject.FindGameObjectWithTag("Player").transform;
+        current = 0;
+        
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        playerGround = player.position;
+        playerGround.y = transform.position.y;
+        Debug.Log(current);
+        if (!deady)
+        {
+            dist = Vector3.Distance(player.position, transform.position);
+
+            if (dist <= howclose)
+            {
+                transform.LookAt(player);
+                anim.ResetTrigger("run");
+                anim.SetTrigger("attack");
+
+            }
+            else if (dist <= leashRange)
+            {
+                transform.LookAt(player);
+                anim.SetTrigger("run");
+                
+                transform.position = Vector3.MoveTowards(transform.position, player.position, moveSpeed * Time.deltaTime);
+            }
+            else
+            {
+                if (transform.position != points[current].position && !stop)
+                {
+                    transform.LookAt(points[current]);
+                    anim.SetTrigger("run");
+                    transform.position = Vector3.MoveTowards(transform.position, points[current].position, moveSpeed * Time.deltaTime);
+                }
+                else
+                {
+                    anim.ResetTrigger("run");
+                    StartCoroutine("Stop");
+                    current = (current + 1) % (points.Length);
+                    
+                }
+            }
+        }
+    }
+    IEnumerator Stop()
+    {
+        stop = true;
+        //anim.SetTrigger("Look Around");
+        yield return new WaitForSeconds(5.0f);
+        //anim.ResetTrigger("Look Around");
+        stop = false;
+    }
+    public void TakeDamage(float amount)
+    {
+        health -= amount;
+        OnHealthChanged(max, health);
+        if(health <= 0f)
+        {
+            Die();
+        }
+    }
+    public void Die()
+    {
+        Destroy(gameObject);
+    }
+}
